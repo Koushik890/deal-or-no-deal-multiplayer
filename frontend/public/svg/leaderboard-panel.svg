@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" fill="none">
+  <!-- Panel background -->
+  <rect x="5" y="5" width="290" height="390" rx="16" fill="url(#panel-bg)"/>
+  
+  <!-- Glass effect overlay -->
+  <rect x="5" y="5" width="290" height="390" rx="16" fill="url(#glass-overlay)" opacity="0.1"/>
+  
+  <!-- Border frame -->
+  <rect x="5" y="5" width="290" height="390" rx="16" fill="none" 
+        stroke="url(#panel-border)" stroke-width="2"/>
+  
+  <!-- Header area -->
+  <rect x="15" y="15" width="270" height="50" rx="8" fill="#0d0f1a" opacity="0.8"/>
+  
+  <!-- Trophy icon placeholder -->
+  <path d="M150 25 L155 35 L165 37 L158 44 L160 54 L150 49 L140 54 L142 44 L135 37 L145 35 Z" 
+        fill="#d4af37"/>
+  
+  <!-- Leaderboard rows -->
+  <g id="rows">
+    <!-- Row 1 (gold) -->
+    <rect x="15" y="80" width="270" height="50" rx="8" fill="rgba(212,175,55,0.1)"/>
+    <circle cx="45" cy="105" r="15" fill="url(#gold-medal)"/>
+    <rect x="70" y="95" width="120" height="20" rx="4" fill="#1a1d30"/>
+    <rect x="220" y="95" width="50" height="20" rx="4" fill="#d4af37" opacity="0.3"/>
+    
+    <!-- Row 2 (silver) -->
+    <rect x="15" y="140" width="270" height="50" rx="8" fill="rgba(156,163,175,0.05)"/>
+    <circle cx="45" cy="165" r="15" fill="url(#silver-medal)"/>
+    <rect x="70" y="155" width="120" height="20" rx="4" fill="#1a1d30"/>
+    <rect x="220" y="155" width="50" height="20" rx="4" fill="#9ca3af" opacity="0.3"/>
+    
+    <!-- Row 3 (bronze) -->
+    <rect x="15" y="200" width="270" height="50" rx="8" fill="rgba(180,83,9,0.05)"/>
+    <circle cx="45" cy="225" r="15" fill="url(#bronze-medal)"/>
+    <rect x="70" y="215" width="120" height="20" rx="4" fill="#1a1d30"/>
+    <rect x="220" y="215" width="50" height="20" rx="4" fill="#b45309" opacity="0.3"/>
+    
+    <!-- Row 4-6 (regular) -->
+    <rect x="15" y="260" width="270" height="40" rx="6" fill="rgba(255,255,255,0.02)"/>
+    <rect x="15" y="310" width="270" height="40" rx="6" fill="rgba(255,255,255,0.02)"/>
+    <rect x="15" y="360" width="270" height="30" rx="6" fill="rgba(255,255,255,0.02)"/>
+  </g>
+  
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="panel-bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#121525"/>
+      <stop offset="100%" stop-color="#0a0b14"/>
+    </linearGradient>
+    <linearGradient id="glass-overlay" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </linearGradient>
+    <linearGradient id="panel-border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d4af37" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#d4af37" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#d4af37" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="gold-medal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d4af37"/>
+      <stop offset="50%" stop-color="#f5e6a3"/>
+      <stop offset="100%" stop-color="#d4af37"/>
+    </linearGradient>
+    <linearGradient id="silver-medal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9ca3af"/>
+      <stop offset="50%" stop-color="#e5e7eb"/>
+      <stop offset="100%" stop-color="#9ca3af"/>
+    </linearGradient>
+    <linearGradient id="bronze-medal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b45309"/>
+      <stop offset="50%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+</svg>

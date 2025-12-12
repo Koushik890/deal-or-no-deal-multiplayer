@@ -1,0 +1,35 @@
+# Render Blueprint for the Socket.io backend
+#
+# Usage:
+# - Push this repo to GitHub/GitLab
+# - In Render, create a new Blueprint instance from the repo
+# - Set/adjust env vars (especially CORS_ORIGINS) for your Vercel domain
+services:
+  - type: web
+    name: deal-or-no-deal-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # IMPORTANT: Set this to your Vercel production domain (and optionally previews).
+      # Examples:
+      #   https://yourapp.vercel.app,https://yourdomain.com
+      #   https://*.vercel.app,https://yourdomain.com
+      - key: CORS_ORIGINS
+        value: https://*.vercel.app
+      # Optional: room cleanup configuration (ms)
+      - key: ROOM_CLEANUP_INTERVAL_MS
+        value: "600000"
+      - key: ROOM_WAITING_TTL_MS
+        value: "43200000"
+      - key: ROOM_SELECTION_TTL_MS
+        value: "43200000"
+      - key: ROOM_FINISHED_TTL_MS
+        value: "7200000"
+
+
