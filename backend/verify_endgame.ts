@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { io, Socket } from "socket.io-client";
 
 /**
@@ -286,6 +287,8 @@ run().catch((err) => {
   console.error("[verify_endgame] ❌ FAILED:", err?.message || err);
   process.exitCode = 1;
 });
+
+
 
 
 

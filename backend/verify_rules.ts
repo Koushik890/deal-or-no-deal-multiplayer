@@ -1,3 +1,4 @@
+/// <reference types="node" />
 
 import { io, Socket } from 'socket.io-client';
 
@@ -18,8 +19,8 @@ async function runTest() {
     try {
         // Connect
         await Promise.all([
-            new Promise(res => hostSocket.on('connect', res)),
-            new Promise(res => p2Socket.on('connect', res))
+            new Promise<void>((resolve) => hostSocket.on('connect', () => resolve())),
+            new Promise<void>((resolve) => p2Socket.on('connect', () => resolve()))
         ]);
         console.log('✅ Sockets connected');
 

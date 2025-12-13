@@ -541,11 +541,13 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     console.log(`[Socket] Client connected: ${socket.id}`);
 
     // Create Room
-    socket.on('create-room', (payload: CreateRoomPayload, callback) => {
+    socket.on('create-room', (payload: CreateRoomPayload, callback?: (res: { success: boolean; roomCode?: string; playerId?: string; error?: string }) => void) => {
         const { playerName } = payload;
 
         if (!playerName || playerName.trim().length === 0) {
-            callback({ success: false, error: 'Player name is required' });
+            if (typeof callback === 'function') {
+                callback({ success: false, error: 'Player name is required' });
+            }
             return;
         }
 
@@ -554,26 +556,32 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
 
         console.log(`[Room] Created room ${room.code} by ${playerName}`);
 
-        callback({
-            success: true,
-            roomCode: room.code,
-            playerId,
-        });
+        if (typeof callback === 'function') {
+            callback({
+                success: true,
+                roomCode: room.code,
+                playerId,
+            });
+        }
 
         broadcastGameState(io, room.code);
     });
 
     // Join Room
-    socket.on('join-room', (payload: JoinRoomPayload, callback) => {
+    socket.on('join-room', (payload: JoinRoomPayload, callback?: (res: { success: boolean; roomCode?: string; playerId?: string; error?: string }) => void) => {
         const { roomCode, playerName, password, asSpectator } = payload;
 
         if (!playerName || playerName.trim().length === 0) {
-            callback({ success: false, error: 'Player name is required' });
+            if (typeof callback === 'function') {
+                callback({ success: false, error: 'Player name is required' });
+            }
             return;
         }
 
         if (!roomCode || roomCode.trim().length === 0) {
-            callback({ success: false, error: 'Room code is required' });
+            if (typeof callback === 'function') {
+                callback({ success: false, error: 'Room code is required' });
+            }
             return;
         }
 
@@ -585,7 +593,9 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
         );
 
         if (!result.success) {
-            callback({ success: false, error: result.error });
+            if (typeof callback === 'function') {
+                callback({ success: false, error: result.error });
+            }
             return;
         }
 
@@ -593,11 +603,13 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
 
         console.log(`[Room] ${playerName} joined room ${roomCode}${asSpectator ? ' as spectator' : ''}`);
 
-        callback({
-            success: true,
-            roomCode: roomCode.toUpperCase(),
-            playerId: result.playerId,
-        });
+        if (typeof callback === 'function') {
+            callback({
+                success: true,
+                roomCode: roomCode.toUpperCase(),
+                playerId: result.playerId,
+            });
+        }
 
         broadcastGameState(io, roomCode.toUpperCase());
     });

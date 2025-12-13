@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { io, Socket } from "socket.io-client";
 
 /**
