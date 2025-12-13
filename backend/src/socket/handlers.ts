@@ -295,6 +295,35 @@ function emitLeaderboardUpdate(io: Server, roomCode: string): void {
 }
 
 /**
+ * Send a single leaderboard snapshot to a specific socket.
+ * This prevents clients from missing the final leaderboard if they disconnect/reconnect
+ * around the end of a game (Socket.io events are not replayed).
+ */
+function emitLeaderboardSnapshotToSocket(io: Server, roomCode: string, socketId: string): void {
+    const room = getRoom(roomCode);
+    if (!room) return;
+
+    const leaderboard = Array.from(room.gameState.players.values())
+        .filter((p) => p.role === 'player' && p.boxNumber !== null)
+        .map((p) => ({
+            playerId: p.id,
+            playerName: p.name,
+            amount: p.dealAmount || 0,
+            points: p.points || 0,
+            wasBoxValue: !!p.isLastStanding,
+            rank: 0,
+        }))
+        .sort((a, b) => b.points - a.points)
+        .map((entry, index) => ({ ...entry, rank: index + 1 }));
+
+    if (room.gameState.phase === 'finished') {
+        io.to(socketId).emit('game-ended', { leaderboard });
+    } else {
+        io.to(socketId).emit('leaderboard-update', { leaderboard });
+    }
+}
+
+/**
  * Finalise the game: calculate final points & leaderboard and broadcast to all.
  */
 function finishGame(io: Server, roomCode: string): void {
@@ -611,7 +640,10 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
             });
         }
 
-        broadcastGameState(io, roomCode.toUpperCase());
+        const code = roomCode.toUpperCase();
+        broadcastGameState(io, code);
+        // Ensure late-joining spectators (or reconnecting tabs that re-join) can see the current leaderboard.
+        emitLeaderboardSnapshotToSocket(io, code, socket.id);
     });
 
     // Reconnect
@@ -622,6 +654,8 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
             console.log(`[Socket] Player ${payload.playerId} reconnected`);
             callback({ success: true, roomCode: room.code });
             broadcastGameState(io, room.code);
+            // Re-send the latest leaderboard snapshot (especially important if the game already finished).
+            emitLeaderboardSnapshotToSocket(io, room.code, socket.id);
         } else {
             callback({ success: false, error: 'Player not found' });
         }

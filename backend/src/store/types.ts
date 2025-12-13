@@ -161,6 +161,7 @@ export interface LeaderboardEntry {
     playerId: string;
     playerName: string;
     amount: number;
+    points: number;
     rank: number;
     wasBoxValue: boolean; // true if final box value, false if deal amount
 }
