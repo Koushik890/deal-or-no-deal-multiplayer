@@ -8,6 +8,9 @@ services:
   - type: web
     name: deal-or-no-deal-backend
     env: node
+    # Use Render's free plan by default to avoid requiring billing details during initial setup.
+    # For best real-time stability (no sleeping), switch this to a paid plan later.
+    plan: free
     rootDir: backend
     buildCommand: npm ci && npm run build
     startCommand: npm start
