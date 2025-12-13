@@ -12,7 +12,9 @@ services:
     # For best real-time stability (no sleeping), switch this to a paid plan later.
     plan: free
     rootDir: backend
-    buildCommand: npm ci && npm run build
+    # NOTE: Render runs builds with NODE_ENV=production, which can omit devDependencies.
+    # We need devDependencies during build for TypeScript + @types/*.
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
