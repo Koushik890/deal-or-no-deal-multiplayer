@@ -268,6 +268,7 @@ export default function PlayPage() {
                         <PlayerPanel
                             players={panelPlayers}
                             currentPlayerId={state.playerId || ""}
+                            showReadyStatus={false}
                         />
 
                         {/* Small "This Game" leaderboard while playing */}

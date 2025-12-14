@@ -20,6 +20,11 @@ interface PlayerPanelProps {
     currentPlayerId?: string;
     /** Maximum players allowed */
     maxPlayers?: number;
+    /**
+     * Whether to display the "Ready" status.
+     * This is useful in the lobby, but is usually redundant once the game starts.
+     */
+    showReadyStatus?: boolean;
 }
 
 /**
@@ -32,6 +37,7 @@ export function PlayerPanel({
     players,
     currentPlayerId,
     maxPlayers = 6,
+    showReadyStatus = true,
 }: PlayerPanelProps) {
     const emptySlots = Math.max(0, maxPlayers - players.length);
 
@@ -52,6 +58,7 @@ export function PlayerPanel({
                         key={player.id}
                         player={player}
                         isCurrentUser={player.id === currentPlayerId}
+                        showReadyStatus={showReadyStatus}
                     />
                 ))}
 
@@ -75,12 +82,13 @@ export function PlayerPanel({
 interface PlayerCardProps {
     player: Player;
     isCurrentUser: boolean;
+    showReadyStatus: boolean;
 }
 
-function PlayerCard({ player, isCurrentUser }: PlayerCardProps) {
+function PlayerCard({ player, isCurrentUser, showReadyStatus }: PlayerCardProps) {
     const isDealt = player.hasDealt;
     const isActive = player.isActive;
-    const isReady = player.isReady;
+    const isReady = showReadyStatus && player.isReady;
 
     // Determine card styling
     let cardClasses = "player-card flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 min-h-[64px] relative overflow-hidden group ";

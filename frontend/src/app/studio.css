@@ -236,11 +236,17 @@
 
 /* Text glow */
 .text-glow-gold {
-  text-shadow: 0 0 10px rgba(212, 175, 55, 0.8), 0 0 20px rgba(212, 175, 55, 0.4);
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.85), 0 0 24px rgba(212, 175, 55, 0.45);
+  /* Drop-shadow helps when using background-clip:text gradient fills */
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.55))
+    drop-shadow(0 0 18px rgba(212, 175, 55, 0.35));
 }
 
 .text-glow-blue {
-  text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4);
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.85), 0 0 24px rgba(59, 130, 246, 0.45);
+  /* Drop-shadow helps when using background-clip:text gradient fills */
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.55))
+    drop-shadow(0 0 18px rgba(59, 130, 246, 0.35));
 }
 
 /* ============================================
@@ -720,6 +726,7 @@
 .high-contrast .text-glow-gold,
 .high-contrast .text-glow-blue {
   text-shadow: none;
+  filter: none;
 }
 
 /* ============================================
@@ -1701,6 +1708,7 @@ input:focus-visible {
 .high-contrast .text-glow-gold,
 .high-contrast .text-glow-blue {
   text-shadow: none;
+  filter: none;
 }
 
 /* Disable shimmer for readability */

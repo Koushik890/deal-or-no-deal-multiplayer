@@ -146,7 +146,10 @@ export function BankerOffer({
 
             {/* Offer Amount */}
             <div className="banker-amount-display">
-                <span id="banker-offer-amount" className="banker-amount text-4xl sm:text-5xl lg:text-6xl">
+                <span
+                    id="banker-offer-amount"
+                    className="banker-amount text-glow-gold text-4xl sm:text-5xl lg:text-6xl"
+                >
                     {formatCurrency(amount)}
                 </span>
             </div>

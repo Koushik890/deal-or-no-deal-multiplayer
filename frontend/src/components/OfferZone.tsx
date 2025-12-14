@@ -200,7 +200,7 @@ export function OfferZone({
                         <span
                             id="offer-zone-amount"
                             className={`
-                                offer-amount relative z-10
+                                offer-amount relative z-10 text-glow-gold
                                 text-5xl sm:text-6xl lg:text-7xl font-display font-black
                                 ${!prefersReducedMotion ? "offer-amount-shimmer" : "text-gold-400"}
                             `}
