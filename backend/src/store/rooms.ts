@@ -6,12 +6,15 @@
  */
 
 import { Room, GameState, Player, Box, ChatMessage, PlayerRole } from './types';
+import { randomBytes, timingSafeEqual } from 'crypto';
 import { BOX_VALUES, ROOM_CODE_LENGTH, sanitiseName, MAX_PLAYERS_PER_ROOM } from '../game/constants';
 
 // In-memory stores
 const rooms: Map<string, Room> = new Map();
 const playerToRoom: Map<string, string> = new Map(); // playerId -> roomCode
 const socketToPlayer: Map<string, string> = new Map(); // socketId -> playerId
+// Private bearer proofs never enter Player or public game-state payloads.
+const reconnectTokens: Map<string, string> = new Map();
 
 // Global leaderboard (top 100, runtime only)
 interface GlobalLeaderboardEntry {
@@ -74,7 +77,7 @@ function createInitialBoxes(): Box[] {
 /**
  * Create a new room
  */
-export function createRoom(hostSocketId: string, hostName: string): { room: Room; playerId: string } {
+export function createRoom(hostSocketId: string, hostName: string): { room: Room; playerId: string; reconnectToken: string } {
     const roomCode = generateRoomCode();
     const playerId = generatePlayerId();
 
@@ -130,8 +133,9 @@ export function createRoom(hostSocketId: string, hostName: string): { room: Room
     rooms.set(roomCode, room);
     playerToRoom.set(playerId, roomCode);
     socketToPlayer.set(hostSocketId, playerId);
-
-    return { room, playerId };
+    const reconnectToken = randomBytes(32).toString('hex');
+    reconnectTokens.set(playerId, reconnectToken);
+    return { room, playerId, reconnectToken };
 }
 
 /**
@@ -142,7 +146,7 @@ export function joinRoom(
     socketId: string,
     playerName: string,
     options: { password?: string; asSpectator?: boolean } = {}
-): { success: boolean; playerId?: string; error?: string; room?: Room } {
+): { success: boolean; playerId?: string; reconnectToken?: string; error?: string; room?: Room } {
     const room = rooms.get(roomCode.toUpperCase());
 
     if (!room) {
@@ -192,8 +196,9 @@ export function joinRoom(
     room.gameState.players.set(playerId, player);
     playerToRoom.set(playerId, roomCode.toUpperCase());
     socketToPlayer.set(socketId, playerId);
-
-    return { success: true, playerId, room };
+    const reconnectToken = randomBytes(32).toString('hex');
+    reconnectTokens.set(playerId, reconnectToken);
+    return { success: true, playerId, reconnectToken, room };
 }
 
 /**
@@ -216,7 +221,10 @@ export function getRoomByPlayerId(playerId: string): Room | undefined {
  * Get player ID from socket ID
  */
 export function getPlayerIdFromSocket(socketId: string): string | undefined {
-    return socketToPlayer.get(socketId);
+    const playerId = socketToPlayer.get(socketId);
+    if (!playerId) return undefined;
+    const player = getRoomByPlayerId(playerId)?.gameState.players.get(playerId);
+    return player?.socketId === socketId && player.isConnected ? playerId : undefined;
 }
 
 /**
@@ -260,6 +268,10 @@ export function handleDisconnect(socketId: string): { roomCode: string; playerId
     if (!player) return undefined;
 
     // Mark as disconnected but keep in game (including lobby)
+    if (player.socketId !== socketId) {
+        socketToPlayer.delete(socketId);
+        return undefined;
+    }
     player.isConnected = false;
     socketToPlayer.delete(socketId);
 
@@ -278,7 +290,12 @@ export function removePlayer(socketId: string): { roomCode: string; playerId: st
 /**
  * Reconnect a player by playerId
  */
-export function reconnectPlayer(playerId: string, newSocketId: string): Room | undefined {
+export function reconnectPlayer(playerId: string, newSocketId: string, token: unknown): { room: Room; previousSocketId?: string } | undefined {
+    const expected = reconnectTokens.get(playerId);
+    if (typeof token !== 'string' || !/^[0-9a-f]{64}$/.test(token) || !expected ||
+        !timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(token, 'hex'))) return undefined;
+    const currentIdentity = socketToPlayer.get(newSocketId);
+    if (currentIdentity && currentIdentity !== playerId) return undefined;
     const roomCode = playerToRoom.get(playerId);
     if (!roomCode) return undefined;
 
@@ -288,12 +305,14 @@ export function reconnectPlayer(playerId: string, newSocketId: string): Room | u
     const player = room.gameState.players.get(playerId);
     if (!player) return undefined;
 
-    // Update socket mapping
+    // Retire the prior authority before its disconnect event can run.
+    const previousSocketId = socketToPlayer.get(player.socketId) === playerId ? player.socketId : undefined;
+    if (previousSocketId) socketToPlayer.delete(previousSocketId);
     player.socketId = newSocketId;
     player.isConnected = true;
     socketToPlayer.set(newSocketId, playerId);
 
-    return room;
+    return { room, previousSocketId };
 }
 
 /**
@@ -421,8 +440,9 @@ function deleteRoom(roomCode: string): boolean {
     // Remove player mappings for this room
     room.gameState.players.forEach((p) => {
         playerToRoom.delete(p.id);
+        reconnectTokens.delete(p.id);
         // Best-effort: if the socket is still mapped, remove it as well
-        socketToPlayer.delete(p.socketId);
+        if (socketToPlayer.get(p.socketId) === p.id) socketToPlayer.delete(p.socketId);
     });
 
     // Remove chat messages for this room

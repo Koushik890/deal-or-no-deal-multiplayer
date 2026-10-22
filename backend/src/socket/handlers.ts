@@ -120,7 +120,7 @@ function broadcastGameState(
 
     // Send personalised state to each connected player
     room.gameState.players.forEach((player) => {
-        if (player.isConnected) {
+        if (player.isConnected && getPlayerIdFromSocket(player.socketId) === player.id) {
             const update = createGameStateUpdate(room.gameState, player.id, recentlyOpenedBox);
             io.to(player.socketId).emit('game-state-update', update);
         }
@@ -570,17 +570,17 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     console.log(`[Socket] Client connected: ${socket.id}`);
 
     // Create Room
-    socket.on('create-room', (payload: CreateRoomPayload, callback?: (res: { success: boolean; roomCode?: string; playerId?: string; error?: string }) => void) => {
-        const { playerName } = payload;
+    socket.on('create-room', (payload: CreateRoomPayload, callback?: (res: { success: boolean; roomCode?: string; playerId?: string; reconnectToken?: string; error?: string }) => void) => {
+        const { playerName } = payload || {};
 
-        if (!playerName || playerName.trim().length === 0) {
+        if (typeof playerName !== 'string' || playerName.trim().length === 0) {
             if (typeof callback === 'function') {
                 callback({ success: false, error: 'Player name is required' });
             }
             return;
         }
 
-        const { room, playerId } = createRoom(socket.id, playerName.trim());
+        const { room, playerId, reconnectToken } = createRoom(socket.id, playerName.trim());
         socket.join(room.code);
 
         console.log(`[Room] Created room ${room.code} by ${playerName}`);
@@ -590,6 +590,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
                 success: true,
                 roomCode: room.code,
                 playerId,
+                reconnectToken,
             });
         }
 
@@ -597,17 +598,17 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     });
 
     // Join Room
-    socket.on('join-room', (payload: JoinRoomPayload, callback?: (res: { success: boolean; roomCode?: string; playerId?: string; error?: string }) => void) => {
-        const { roomCode, playerName, password, asSpectator } = payload;
+    socket.on('join-room', (payload: JoinRoomPayload, callback?: (res: { success: boolean; roomCode?: string; playerId?: string; reconnectToken?: string; error?: string }) => void) => {
+        const { roomCode, playerName, password, asSpectator } = payload || {};
 
-        if (!playerName || playerName.trim().length === 0) {
+        if (typeof playerName !== 'string' || playerName.trim().length === 0) {
             if (typeof callback === 'function') {
                 callback({ success: false, error: 'Player name is required' });
             }
             return;
         }
 
-        if (!roomCode || roomCode.trim().length === 0) {
+        if (typeof roomCode !== 'string' || roomCode.trim().length === 0) {
             if (typeof callback === 'function') {
                 callback({ success: false, error: 'Room code is required' });
             }
@@ -637,6 +638,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
                 success: true,
                 roomCode: roomCode.toUpperCase(),
                 playerId: result.playerId,
+                reconnectToken: result.reconnectToken,
             });
         }
 
@@ -647,9 +649,18 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
     });
 
     // Reconnect
-    socket.on('reconnect-player', (payload: { playerId: string }, callback) => {
-        const room = reconnectPlayer(payload.playerId, socket.id);
-        if (room) {
+    socket.on('reconnect-player', (payload: { playerId: string; reconnectToken: string }, callback) => {
+        if (typeof callback !== 'function') return;
+        if (!payload || typeof payload.playerId !== 'string') {
+            callback({ success: false, error: 'Invalid reconnect credentials' });
+            return;
+        }
+        const result = reconnectPlayer(payload.playerId, socket.id, payload.reconnectToken);
+        if (result) {
+            const { room, previousSocketId } = result;
+            if (previousSocketId && previousSocketId !== socket.id) {
+                io.sockets.sockets.get(previousSocketId)?.disconnect(true);
+            }
             socket.join(room.code);
             console.log(`[Socket] Player ${payload.playerId} reconnected`);
             callback({ success: true, roomCode: room.code });
@@ -657,7 +668,7 @@ export function registerSocketHandlers(io: Server, socket: Socket): void {
             // Re-send the latest leaderboard snapshot (especially important if the game already finished).
             emitLeaderboardSnapshotToSocket(io, room.code, socket.id);
         } else {
-            callback({ success: false, error: 'Player not found' });
+            callback({ success: false, error: 'Invalid reconnect credentials' });
         }
     });
 
