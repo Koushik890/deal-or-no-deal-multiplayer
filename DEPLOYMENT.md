@@ -1,5 +1,7 @@
 # Deployment (Vercel + Render)
 
+Deploy the backend and frontend reconnect-protocol changes together. Reconnection requires the private token returned to the creating/joining browser, stored in that tab's sessionStorage; public player IDs alone cannot restore a session. Older sessions without a token must create or join again. Keep the token out of logs and public game-state payloads.
+
 This repo is split into:
 - `frontend/` (Next.js) → deploy to **Vercel**
 - `backend/` (Express + Socket.io) → deploy to a **persistent Node server** (recommended: **Render Web Service**)

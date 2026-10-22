@@ -184,7 +184,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         case 'SET_ERROR':
             return { ...state, error: action.payload };
         case 'RESET':
-            return initialState;
+            return { ...initialState, isConnected: state.isConnected };
         default:
             return state;
     }
@@ -221,6 +221,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     // Use sessionStorage so multiple tabs can represent different players during local testing.
     // Still supports refresh/reconnect within the same tab.
     const STORAGE_PLAYER_ID = 'dond_player_id';
+    const STORAGE_RECONNECT_TOKEN = 'dond_reconnect_token';
     const STORAGE_PLAYER_NAME = 'dond_player_name';
     const STORAGE_ROOM_CODE = 'dond_room_code';
 
@@ -303,8 +304,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
         const storedPlayerId = sessionStorage.getItem(STORAGE_PLAYER_ID);
         const storedPlayerName = sessionStorage.getItem(STORAGE_PLAYER_NAME);
+        const reconnectToken = sessionStorage.getItem(STORAGE_RECONNECT_TOKEN);
 
         if (!storedPlayerId) return;
+        if (!reconnectToken) {
+            sessionStorage.removeItem(STORAGE_PLAYER_ID);
+            sessionStorage.removeItem(STORAGE_PLAYER_NAME);
+            sessionStorage.removeItem(STORAGE_ROOM_CODE);
+            dispatch({ type: 'RESET' });
+            return;
+        }
         if (!socket.id) return;
 
         // Ensure we only attempt once per socket connection.
@@ -313,7 +322,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
         reconnectInFlightRef.current = true;
 
-        emit('reconnect-player', { playerId: storedPlayerId }, (response: { success: boolean; roomCode?: string; error?: string }) => {
+        emit('reconnect-player', { playerId: storedPlayerId, reconnectToken }, (response: { success: boolean; roomCode?: string; error?: string }) => {
             reconnectInFlightRef.current = false;
 
             if (response.success && response.roomCode) {
@@ -329,6 +338,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             } else {
                 // Stale session, clear and allow the app to fall back to the home screen.
                 sessionStorage.removeItem(STORAGE_PLAYER_ID);
+                sessionStorage.removeItem(STORAGE_RECONNECT_TOKEN);
                 sessionStorage.removeItem(STORAGE_PLAYER_NAME);
                 sessionStorage.removeItem(STORAGE_ROOM_CODE);
                 lastReconnectedSocketIdRef.current = null;
@@ -340,12 +350,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     // Actions
     const createRoom = useCallback(async (playerName: string): Promise<{ success: boolean; roomCode?: string; error?: string }> => {
         return new Promise((resolve) => {
-            emit('create-room', { playerName }, (response: { success: boolean; roomCode?: string; playerId?: string; error?: string }) => {
-                if (response.success && response.roomCode && response.playerId) {
+            emit('create-room', { playerName }, (response: { success: boolean; roomCode?: string; playerId?: string; reconnectToken?: string; error?: string }) => {
+                if (response.success && response.roomCode && response.playerId && response.reconnectToken) {
+                    lastReconnectedSocketIdRef.current = socket?.id || null;
                     dispatch({ type: 'SET_PLAYER', payload: { playerId: response.playerId, playerName } });
                     dispatch({ type: 'SET_ROOM', payload: response.roomCode });
                     if (typeof window !== 'undefined') {
                         sessionStorage.setItem(STORAGE_PLAYER_ID, response.playerId);
+                        sessionStorage.setItem(STORAGE_RECONNECT_TOKEN, response.reconnectToken);
                         sessionStorage.setItem(STORAGE_PLAYER_NAME, playerName);
                         sessionStorage.setItem(STORAGE_ROOM_CODE, response.roomCode);
                     }
@@ -355,7 +367,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
                 }
             });
         });
-    }, [emit]);
+    }, [emit, socket]);
 
     const joinRoom = useCallback(async (
         roomCode: string,
@@ -363,12 +375,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
         options: { password?: string; asSpectator?: boolean } = {}
     ): Promise<{ success: boolean; error?: string }> => {
         return new Promise((resolve) => {
-            emit('join-room', { roomCode, playerName, ...options }, (response: { success: boolean; playerId?: string; error?: string }) => {
-                if (response.success && response.playerId) {
+            emit('join-room', { roomCode, playerName, ...options }, (response: { success: boolean; playerId?: string; reconnectToken?: string; error?: string }) => {
+                if (response.success && response.playerId && response.reconnectToken) {
+                    lastReconnectedSocketIdRef.current = socket?.id || null;
                     dispatch({ type: 'SET_PLAYER', payload: { playerId: response.playerId, playerName } });
                     dispatch({ type: 'SET_ROOM', payload: roomCode.toUpperCase() });
                     if (typeof window !== 'undefined') {
                         sessionStorage.setItem(STORAGE_PLAYER_ID, response.playerId);
+                        sessionStorage.setItem(STORAGE_RECONNECT_TOKEN, response.reconnectToken);
                         sessionStorage.setItem(STORAGE_PLAYER_NAME, playerName);
                         sessionStorage.setItem(STORAGE_ROOM_CODE, roomCode.toUpperCase());
                     }
@@ -378,7 +392,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
                 }
             });
         });
-    }, [emit]);
+    }, [emit, socket]);
 
     const setRoomPassword = useCallback(async (password: string | null): Promise<{ success: boolean; error?: string }> => {
         return new Promise((resolve) => {
@@ -433,6 +447,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'RESET' });
         if (typeof window !== 'undefined') {
             sessionStorage.removeItem(STORAGE_PLAYER_ID);
+            sessionStorage.removeItem(STORAGE_RECONNECT_TOKEN);
             sessionStorage.removeItem(STORAGE_PLAYER_NAME);
             sessionStorage.removeItem(STORAGE_ROOM_CODE);
         }

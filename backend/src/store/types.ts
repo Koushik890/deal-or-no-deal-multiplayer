@@ -111,11 +111,13 @@ export interface ChatMessagePayload {
 export interface RoomCreatedResponse {
     roomCode: string;
     playerId: string;
+    reconnectToken: string;
 }
 
 export interface JoinRoomResponse {
     success: boolean;
     playerId?: string;
+    reconnectToken?: string;
     error?: string;
 }
 
